@@ -4,7 +4,7 @@ import os
 from dotenv import load_dotenv
 from openai import OpenAI
 import time
-
+import json
 class OpenAIAssistant:
     def __init__(self, debug=False):
         # Load environment variables from .env file
@@ -14,9 +14,10 @@ class OpenAIAssistant:
         self.ASSISTANT_ID = "asst_kIeZdHA64m2dPaBQDY0BCVI8"
         self.debug = debug
 
-    def log(self, message):
+    def log(self, *messages):
+        """Log messages if debugging is enabled."""
         if self.debug:
-            print(message)
+            print(' '.join(map(str, messages)))
 
     def run_assistant(self, thread):
         # Retrieve the Assistant
@@ -37,23 +38,20 @@ class OpenAIAssistant:
         # Retrieve the Messages
         messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         new_message = messages.data[0].content[0].text.value
-        self.log(f"Generated message: {new_message}")
+        self.log(new_message)
         return new_message
 
     def generate_response(self, message_body, wa_id, name):
         # Check if there is already a thread_id for the wa_id
         thread_id = self.check_if_thread_exists(wa_id)
-
         # If a thread doesn't exist, create one and store it
         if thread_id is None:
-            self.log(f"Creating new thread for {name} with wa_id {wa_id}")
             thread = self.client.beta.threads.create()
             self.store_thread(wa_id, thread.id)
             thread_id = thread.id
 
         # Otherwise, retrieve the existing thread
         else:
-            self.log(f"Retrieving existing thread for {name} with wa_id {wa_id}")
             thread = self.client.beta.threads.retrieve(thread_id)
 
         # Add message to thread
@@ -65,7 +63,6 @@ class OpenAIAssistant:
 
         # Run the assistant and get the new message
         new_message = self.run_assistant(thread)
-        self.log(f"To {name}:", new_message)
         return new_message
 
     def check_if_thread_exists(self, wa_id):
@@ -76,10 +73,34 @@ class OpenAIAssistant:
         with shelve.open("threads_db", writeback=True) as threads_shelf:
             threads_shelf[wa_id] = thread_id
 
+    def extract_json(self,input_string):
+        try:
+            # Attempt to find the JSON start and end
+            # This assumes the JSON object is enclosed in curly braces {}
+            start_index = input_string.find('{')
+            end_index = input_string.rfind('}') + 1
+
+            # If start_index or end_index are not found, JSON is not present
+            if start_index == -1 or end_index == -1:
+                print("No JSON object found in the input string.")
+                return None
+
+            # Extract the JSON string from the input string
+            json_str = input_string[start_index:end_index]
+
+            # Parse the JSON string into a Python dictionary
+            json_obj = json.loads(json_str)
+
+            return json_obj
+        except ValueError as e:
+            print(f"Error parsing JSON: {e}")
+            return None
 
 # Example usage
 assistant = OpenAIAssistant(debug=True)
-new_message = assistant.generate_response("MH1100", "123", "Jun Hong")
-new_message = assistant.generate_response("Is the answer above correct, return true or false", "123", "Moe")
 
-print("FINAL OUTPUT", new_message)
+new_message = assistant.generate_response("Generate 1:MH1100", "123", "Jun Hong")
+print(new_message)
+filtered_message = assistant.extract_json(new_message)
+
+print("FINAL OUTPUT", filtered_message)
