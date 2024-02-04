@@ -1,9 +1,8 @@
+import json
 import streamlit as st
 from assistant import OpenAIAssistant
 st.set_page_config(layout="wide")
 ai= OpenAIAssistant()
-
-
 
 if "messages" not in st.session_state:
     st.session_state.messages=[
@@ -18,8 +17,6 @@ if "user_input" not in st.session_state:
 if "current_question" not in st.session_state:
     st.session_state.current_question=None
     
-if "MH1100" not in st.session_state:
-    st.session_state.MH1100=False
 
 def send_message_callback():
     if st.session_state.user_input=="":return
@@ -28,7 +25,7 @@ def send_message_callback():
         "role":'User',
         "content": st.session_state.user_input
         })
-    new_message = ai.generate_response("Answer MH1100:"+st.session_state.user_input, "128", "Moe")
+    new_message = ai.generate_response("Answer MH1100:"+st.session_state.user_input, "122", "Moe")
     st.session_state.messages.append({
         "role":'Assistant',
         "content": new_message
@@ -36,9 +33,9 @@ def send_message_callback():
     st.session_state.user_input=None
 
 def generate_question():
-    if st.session_state.MH1100=="":return
-    if st.session_state.MH1100 is None :return
-    st.session_state.current_question = ai.generate_response("Generate 1:MH1100", "128", "Jun Hong")
+    # if st.session_state.MH1100=="":return
+    # if st.session_state.MH1100 is None :return
+    st.session_state.current_question = ai.extract_json(ai.generate_response("Generate 1:MH1100", "121", "Jun Hong"))
     
 
 tab1, tab2, tab3 = st.tabs(["MH1100", "MH1812", "SC1003"])
@@ -49,7 +46,7 @@ with st.container():
         if st.session_state.MH1100:
             st.markdown(
                 f"<div style=' padding: 10px; border-radius:10px;margin-bottom:10px;'>"
-                f"<b>Question:</b>{st.session_state.current_question}</div>",
+                f"<b>Question:</b>{st.session_state.current_question['question']}</div>",
                 unsafe_allow_html=True
             )
     with tab2: 
