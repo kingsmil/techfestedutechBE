@@ -97,10 +97,10 @@ class OpenAIAssistant:
             return None
 
 # Example usage
-assistant = OpenAIAssistant(debug=True)
+# assistant = OpenAIAssistant(debug=True)
 
-new_message = assistant.generate_response("Generate 1:MH1100", "123", "Jun Hong")
-print(new_message)
-filtered_message = assistant.extract_json(new_message)
+# new_message = assistant.generate_response("Generate 1:MH1100", "123", "Jun Hong")
+# print(new_message)
+# filtered_message = assistant.extract_json(new_message)
 
-print("FINAL OUTPUT", filtered_message)
+# print("FINAL OUTPUT", filtered_message)
