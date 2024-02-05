@@ -11,7 +11,7 @@ class OpenAIAssistant:
         load_dotenv()
         self.OPEN_AI_API_KEY = os.getenv("OPEN_AI_API_KEY")
         self.client = OpenAI(api_key=self.OPEN_AI_API_KEY)
-        self.ASSISTANT_ID = "asst_kIeZdHA64m2dPaBQDY0BCVI8"
+        self.ASSISTANT_ID = "asst_PxCjljoYHElWugm0rP1OVrH7"
         self.debug = debug
 
     def log(self, *messages):
@@ -32,7 +32,10 @@ class OpenAIAssistant:
         # Wait for completion
         while run.status != "completed":
             # Be nice to the API
-            time.sleep(0.5)
+            self.log(run.status,"polling api")
+            if run.status == "failed":
+                raise Exception(run)
+            time.sleep(1)
             run = self.client.beta.threads.runs.retrieve(thread_id=thread.id, run_id=run.id)
 
         # Retrieve the Messages
@@ -53,14 +56,14 @@ class OpenAIAssistant:
         # Otherwise, retrieve the existing thread
         else:
             thread = self.client.beta.threads.retrieve(thread_id)
-
+        self.log("added message")
         # Add message to thread
         message = self.client.beta.threads.messages.create(
             thread_id=thread_id,
             role="user",
             content=message_body,
         )
-
+        self.log("running assistant")
         # Run the assistant and get the new message
         new_message = self.run_assistant(thread)
         return new_message
@@ -75,32 +78,35 @@ class OpenAIAssistant:
 
     def extract_json(self,input_string):
         try:
-            # Attempt to find the JSON start and end
-            # This assumes the JSON object is enclosed in curly braces {}
+            # Find the opening brace of the JSON object
             start_index = input_string.find('{')
-            end_index = input_string.rfind('}') + 1
+            if start_index == -1:
+                return None  # No JSON object found
 
-            # If start_index or end_index are not found, JSON is not present
-            if start_index == -1 or end_index == -1:
-                print("No JSON object found in the input string.")
-                return None
+            # Initialize counters for braces
+            open_braces = 0
+            for end_index in range(start_index, len(input_string)):
+                if input_string[end_index] == '{':
+                    open_braces += 1
+                elif input_string[end_index] == '}':
+                    open_braces -= 1
 
-            # Extract the JSON string from the input string
-            json_str = input_string[start_index:end_index]
+                # When open_braces reaches 0, we've found a matching closing brace
+                if open_braces == 0:
+                    # Attempt to parse the JSON from start_index to end_index+1
+                    json_object = json.loads(input_string[start_index:end_index + 1])
+                    return json_object  # Successfully parsed JSON
 
-            # Parse the JSON string into a Python dictionary
-            json_obj = json.loads(json_str)
-
-            return json_obj
-        except ValueError as e:
-            print(f"Error parsing JSON: {e}")
-            return None
+            return None  # No valid JSON object found or unmatched braces
+        except json.JSONDecodeError as e:
+            return None  # Return None if JSON is invalid
+        except Exception as e:
+            return None  # Return None if any other error occurs
 
 # Example usage
 # assistant = OpenAIAssistant(debug=True)
-
-# new_message = assistant.generate_response("Generate 1:MH1100", "123", "Jun Hong")
+#
+# new_message = assistant.generate_response("Generate 1:MH1100", "904", "Jun Hong")
 # print(new_message)
 # filtered_message = assistant.extract_json(new_message)
-
 # print("FINAL OUTPUT", filtered_message)
